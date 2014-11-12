@@ -386,35 +386,52 @@ class commission_worksheet_line(osv.osv):
     _name = "commission.worksheet.line"
     _description = "Commission Worksheet Lines"
 
-    def _search_invoice_done(self, cursor, uid, obj, name, args, domain=None, context=None):
+    def _search_invoice_done(self, cr, uid, obj, name, args, domain=None, context=None):
         if not len(args):
             return []
-        clause = ''
-        sale_clause = ''
-        no_invoiced = False
-        for arg in args:
-            if arg[1] == '=':
-                if arg[2]:
-                    clause += 'AND inv.state = \'paid\''
-                else:
-                    clause += 'AND inv.state != \'cancel\' AND sale.state != \'cancel\'  AND inv.state <> \'paid\'  AND rel.order_id = sale.id '
-                    sale_clause = ',  sale_order AS sale '
-                    no_invoiced = True
-
-        cursor.execute('SELECT rel.order_id ' \
-                'FROM sale_order_invoice_rel AS rel, account_invoice AS inv ' + sale_clause + \
-                'WHERE rel.invoice_id = inv.id ' + clause)
-        res = cursor.fetchall()
-        if no_invoiced:
-            cursor.execute('SELECT sale.id ' \
-                    'FROM sale_order AS sale ' \
-                    'WHERE sale.id NOT IN ' \
-                        '(SELECT rel.order_id ' \
-                        'FROM sale_order_invoice_rel AS rel) and sale.state != \'cancel\'')
-            res.extend(cursor.fetchall())
-        if not res:
-            return [('order_id', '=', 0)]
-        return [('order_id', 'in', [x[0] for x in res])]
+        # Only allow checking invoice_paid = 'true'
+        assert len(args) == 1 and args[0][1] in ('=') and args[0][2], 'expression is not what we expect: %r' % args
+        
+        sale_obj = self.pool.get('sale.order')
+        order_ids = sale_obj.search(cr, uid, [('invoiced', args[0][1], args[0][2])])
+        # It seem to be bug even in OpenERP. function and search function of 'invoiced' do not return the same result. Need to double check.
+        for sale in sale_obj.browse(cr, uid, order_ids, context=context):
+            if not sale.invoiced:
+                order_ids.remove(sale.id)
+        return [('order_id', 'in', order_ids)]
+        
+#         clause = ''
+#         sale_clause = ''
+#         no_invoiced = False
+#         for arg in args:
+#             assert arg[1] in ('=', '!=')
+# 
+#             
+#             if arg[1] == '=':
+#                 sale_obj.search(cr, uid, [('invoiced','=',arg[2])])
+#             else:
+#                 
+#                 if arg[2]:
+#                     clause += 'AND inv.state = \'paid\''
+#                 else:
+#                     clause += 'AND inv.state != \'cancel\' AND sale.state != \'cancel\'  AND inv.state <> \'paid\'  AND rel.order_id = sale.id '
+#                     sale_clause = ',  sale_order AS sale '
+#                     no_invoiced = True
+# 
+#         cursor.execute('SELECT rel.order_id ' \
+#                 'FROM sale_order_invoice_rel AS rel, account_invoice AS inv ' + sale_clause + \
+#                 'WHERE rel.invoice_id = inv.id ' + clause)
+#         res = cursor.fetchall()
+#         if no_invoiced:
+#             cursor.execute('SELECT sale.id ' \
+#                     'FROM sale_order AS sale ' \
+#                     'WHERE sale.id NOT IN ' \
+#                         '(SELECT rel.order_id ' \
+#                         'FROM sale_order_invoice_rel AS rel) and sale.state != \'cancel\'')
+#             res.extend(cursor.fetchall())
+#         if not res:
+#             return [('order_id', '=', 0)]
+#         return [('order_id', 'in', [x[0] for x in res])]
 
     def _is_invoice_done(self, cr, uid, ids, name, arg, context=None):
         res = {}.fromkeys(ids, {'invoice_paid': False, })
