@@ -47,14 +47,27 @@ class account_invoice_landedcost_alloc(osv.osv):
 
         if context is None:
             context = {}
+            
+        cur_obj = self.pool.get('res.currency')
+        ctx = context.copy()
 
         res = []
         inv = self.pool.get('account.invoice').browse(cr, uid, invoice_id, context=context)
+        
+        company_currency = self.pool['res.company'].browse(cr, uid, inv.company_id.id).currency_id.id
+        ctx.update({'date': inv.date_invoice})
+        ctx.update({'pricelist_type': 'purchase'})
+        diff_currency_p = inv.currency_id.id <> company_currency
 
         for line in inv.landedcost_alloc_ids:
             # No amount allocation, continue
             if not line.landedcost_amount_alloc or line.landedcost_amount_alloc == 0:
                 continue
+
+            if inv.currency_id.id != company_currency:
+                amount_company_currency = cur_obj.compute(cr, uid, inv.currency_id.id, company_currency, line.landedcost_amount_alloc, context=ctx)
+            else:
+                amount_company_currency = False
 
             sign = 1
             account_id = line.landedcost_account_id.id
@@ -67,14 +80,18 @@ class account_invoice_landedcost_alloc(osv.osv):
             res.append({
                 'type': 'src',
                 'name': line.supplier_invoice_id.internal_number,
-                'price_unit': -sign * line.landedcost_amount_alloc,
+                'price_unit': -sign * amount_company_currency,
                 'quantity': 1.0,
-                'price': -sign * line.landedcost_amount_alloc,
+                'price': -sign * amount_company_currency,
                 'account_id': account_id,
                 'product_id': False,
                 'uos_id': False,
                 'account_analytic_id': False,
                 'taxes': False,
+                'amount_currency': diff_currency_p \
+                        and line.landedcost_amount_alloc or False,
+                'currency_id': diff_currency_p \
+                        and inv.currency_id.id or False,
                 # kittiu
                 'ref_sale_order_id': line.supplier_invoice_id.ref_sale_order_id and line.supplier_invoice_id.ref_sale_order_id.id or False,
             })
@@ -83,14 +100,18 @@ class account_invoice_landedcost_alloc(osv.osv):
             res.append({
                 'type': 'dest',
                 'name': line.invoice_id.internal_number,
-                'price_unit': sign * line.landedcost_amount_alloc,
+                'price_unit': sign * amount_company_currency,
                 'quantity': 1,
-                'price': sign * line.landedcost_amount_alloc,
+                'price': sign * amount_company_currency,
                 'account_id': account_id,
                 'product_id': False,
                 'uos_id': False,
                 'account_analytic_id': False,
                 'taxes': False,
+                'amount_currency': diff_currency_p \
+                        and line.landedcost_amount_alloc or False,
+                'currency_id': diff_currency_p \
+                        and inv.currency_id.id or False,
                 # kittiu
                 'ref_sale_order_id': line.invoice_id.ref_sale_order_id and line.invoice_id.ref_sale_order_id.id or False,
             })
