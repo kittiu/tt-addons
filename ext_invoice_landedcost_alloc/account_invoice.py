@@ -67,7 +67,7 @@ class account_invoice_landedcost_alloc(osv.osv):
             if inv.currency_id.id != company_currency:
                 amount_company_currency = cur_obj.compute(cr, uid, inv.currency_id.id, company_currency, line.landedcost_amount_alloc, context=ctx)
             else:
-                amount_company_currency = False
+                amount_company_currency = line.landedcost_amount_alloc
 
             sign = 1
             account_id = line.landedcost_account_id.id
