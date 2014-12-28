@@ -318,6 +318,7 @@ class commission_worksheet(osv.osv):
         worksheet_line_obj = self.pool.get('commission.worksheet.line')
         order_obj = self.pool.get('sale.order')
         rule_condition_obj = self.pool.get('commission.rule.condition')
+        cur_obj = self.pool.get('res.currency')
 
         for worksheet in self.browse(cr, uid, ids):
             sale_team_id = worksheet.sale_team_id.id
@@ -348,17 +349,20 @@ class commission_worksheet(osv.osv):
                 commission_amt = 0.0
                 rule_condition_id = self._get_match_rule_condition(cr, uid, rule, order, context=context)
 
-#                 Checking invoice was paid
-#                 inv_line_ids = invoice_line_obj.search(cr, uid,[('origin', '=', order.name)], context=context)
-#                 invoice_paid = False
-#                 if inv_line_ids and len(inv_line_ids)>0:
-#                     lines_data = invoice_line_obj.browse(cr, uid, inv_line_ids,context)
-#                     if lines_data and lines_data[0] and lines_data[0].invoice_id.state=='paid':
-#                         invoice_paid = True
-
+                # Get amount by currency
+                amount_currency = 0.0
+                company_currency = self.pool['res.company'].browse(cr, uid, order.company_id.id).currency_id.id
+                ctx = context.copy()  
+                ctx.update({'date': order.date_order})
+                ctx.update({'pricelist_type': 'sale'})
+                if order.currency_id.id <> company_currency:
+                    amount_currency = cur_obj.compute(cr, uid, order.currency_id.id, company_currency, order.amount_net, context=ctx)
+                else:
+                    amount_currency = order.amount_net
+                # --
                 if rule_condition_id:
                     rule_condition = rule_condition_obj.browse(cr, uid, rule_condition_id)
-                    amount_to_accumulate = order.amount_net * rule_condition.accumulate_coeff
+                    amount_to_accumulate = amount_currency * rule_condition.accumulate_coeff
                     accumulated_amt += amount_to_accumulate
                     # accumulated_amt += order.amount_net
                     commission_amt = self._calculate_commission(cr, uid, rule, amount_to_accumulate, accumulated_amt, context=context)
@@ -368,7 +372,7 @@ class commission_worksheet(osv.osv):
                     'order_id': order.id,
                     'sale_type': order.overall_product_type,
                     'order_date': order.date_order,
-                    'order_amt': order.amount_net,
+                    'order_amt': amount_currency,
                     'margin': order.pq_margin,
                     'percent_margin': order.percent_margin,
                     'accumulated_amt': accumulated_amt,
@@ -400,39 +404,6 @@ class commission_worksheet_line(osv.osv):
                 order_ids.remove(sale.id)
         return [('order_id', 'in', order_ids)]
         
-#         clause = ''
-#         sale_clause = ''
-#         no_invoiced = False
-#         for arg in args:
-#             assert arg[1] in ('=', '!=')
-# 
-#             
-#             if arg[1] == '=':
-#                 sale_obj.search(cr, uid, [('invoiced','=',arg[2])])
-#             else:
-#                 
-#                 if arg[2]:
-#                     clause += 'AND inv.state = \'paid\''
-#                 else:
-#                     clause += 'AND inv.state != \'cancel\' AND sale.state != \'cancel\'  AND inv.state <> \'paid\'  AND rel.order_id = sale.id '
-#                     sale_clause = ',  sale_order AS sale '
-#                     no_invoiced = True
-# 
-#         cursor.execute('SELECT rel.order_id ' \
-#                 'FROM sale_order_invoice_rel AS rel, account_invoice AS inv ' + sale_clause + \
-#                 'WHERE rel.invoice_id = inv.id ' + clause)
-#         res = cursor.fetchall()
-#         if no_invoiced:
-#             cursor.execute('SELECT sale.id ' \
-#                     'FROM sale_order AS sale ' \
-#                     'WHERE sale.id NOT IN ' \
-#                         '(SELECT rel.order_id ' \
-#                         'FROM sale_order_invoice_rel AS rel) and sale.state != \'cancel\'')
-#             res.extend(cursor.fetchall())
-#         if not res:
-#             return [('order_id', '=', 0)]
-#         return [('order_id', 'in', [x[0] for x in res])]
-
     def _is_invoice_done(self, cr, uid, ids, name, arg, context=None):
         res = {}.fromkeys(ids, {'invoice_paid': False, })
         data_objs = self.browse(cr, uid, ids, context=context)

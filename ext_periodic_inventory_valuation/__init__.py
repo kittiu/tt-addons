@@ -19,44 +19,6 @@
 #
 ##############################################################################
 
-{
-    'name' : "Commission Calculation for TameTech",
-    'author' : 'Ecosoft',
-    'summary': '',
-    'description': """
-Commission Management.
-====================================
-    * Sale Teams
-    * Commission rules
-    * Commission Work Sheet
-    
-Key Features
-------------
-    * Manage Sale Teams
-    * Manage Commission Rules
-    * Create Commission Work Sheet from Sale Order by Month
-    * Create Supplier Invoice from Commission Work Sheet  
-""",
-    'category': 'Sales',
-    'sequence': 8,
-    'website' : 'http://www.ecosoft.co.th',
-    'images' : [],
-    'depends' : ['sale','account','sale_prequotation','currency_rate_enhanced'],
-    'demo' : [
-        'commission_calc_demo.xml'],
-    'data' : [
-        'commission_calc_data.xml',
-        'commission_calc_view.xml',
-        'sale_order_view.xml',
-        'commission_product_data.xml',
-        'commission_calc_sequence.xml'
-    ],
-    'test' : [
-        '/test/commission_calc_demo.yml'
-    ],
-    'auto_install': False,
-    'application': True,
-    'installable': True,
-}
+import periodic_inventory_valuation
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

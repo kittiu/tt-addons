@@ -20,39 +20,23 @@
 ##############################################################################
 
 {
-    'name' : "Commission Calculation for TameTech",
+    'name' : "Extensions for Periodic Inventory Valuation",
     'author' : 'Ecosoft',
     'summary': '',
     'description': """
-Commission Management.
-====================================
-    * Sale Teams
-    * Commission rules
-    * Commission Work Sheet
-    
-Key Features
-------------
-    * Manage Sale Teams
-    * Manage Commission Rules
-    * Create Commission Work Sheet from Sale Order by Month
-    * Create Supplier Invoice from Commission Work Sheet  
+
+This module make sure that, selling rate is being used (according to currency_rate_enhanced).
+
 """,
-    'category': 'Sales',
+    'category': 'Base',
     'sequence': 8,
     'website' : 'http://www.ecosoft.co.th',
     'images' : [],
-    'depends' : ['sale','account','sale_prequotation','currency_rate_enhanced'],
-    'demo' : [
-        'commission_calc_demo.xml'],
+    'depends' : ['currency_rate_enhanced', 'periodic_inventory_valuation'],
+    'demo' : [],
     'data' : [
-        'commission_calc_data.xml',
-        'commission_calc_view.xml',
-        'sale_order_view.xml',
-        'commission_product_data.xml',
-        'commission_calc_sequence.xml'
     ],
     'test' : [
-        '/test/commission_calc_demo.yml'
     ],
     'auto_install': False,
     'application': True,
