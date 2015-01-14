@@ -157,6 +157,20 @@
         <field name="jasper_report">True</field>
         <field name="jasper_output">pdf</field>
     </record>
+    
+    <report string="Refund (TT)"
+        model="account.invoice"
+        auto="True"
+        name="account.refund.form"
+        rml="jrxml_reports/custom_reports/tt_tax_refund.jrxml"
+        id="account_refund_form" 
+        menu="True"
+        header="False" 
+        />    
+    <record id="account_refund_form" model="ir.actions.report.xml">
+        <field name="jasper_report">True</field>
+        <field name="jasper_output">pdf</field>
+    </record>
 
     <!-- Not use
     <record id="group_report_to_excel" model="res.groups">
